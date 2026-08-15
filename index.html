@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Crystal Match - Игра Три в Ряд</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            touch-action: manipulation;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .score-container, .time-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .score-icon, .time-icon {
+            font-size: 24px;
+        }
+
+        .best-score {
+            color: #f39c12;
+            font-size: 14px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 3px;
+            background: #ddd;
+            border-radius: 10px;
+            padding: 5px;
+            aspect-ratio: 1;
+            margin-bottom: 20px;
+        }
+
+        .cell {
+            position: relative;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cell:active {
+            transform: scale(0.9);
+        }
+
+        .crystal {
+            width: 100%;
+            height: 100%;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .crystal-0 { background: linear-gradient(135deg, #FF6B6B, #FF4757); }
+        .crystal-1 { background: linear-gradient(135deg, #4ECDC4, #44BD9E); }
+        .crystal-2 { background: linear-gradient(135deg, #45B7D1, #3498DB); }
+        .crystal-3 { background: linear-gradient(135deg, #FFA502, #E67E22); }
+        .crystal-4 { background: linear-gradient(135deg, #A29BFE, #6C5CE7); }
+
+        .crystal.selected {
+            animation: pulse 0.5s infinite;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .crystal.matched {
+            animation: matchAnimation 0.5s ease-out;
+        }
+
+        @keyframes matchAnimation {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.5; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .crystal.falling {
+            animation: fallAnimation 0.3s ease-in;
+        }
+
+        @keyframes fallAnimation {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .combo-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            pointer-events: none;
+            animation: comboAnimation 1s ease-out;
+            z-index: 10;
+        }
+
+        @keyframes comboAnimation {
+            from {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            to {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(2);
+            }
+        }
+
+        .button-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            min-width: 120px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-new-game {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-hint {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .game-over-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal-content p {
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .modal-content .final-score {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 10px;
+            }
+            
+            .game-board {
+                gap: 2px;
+                padding: 3px;
+            }
+            
+            .crystal {
+                font-size: 1.5em;
+            }
+            
+            button {
+                padding: 10px 20px;
+                font-size: 14px;
+                min-width: 100px;
+            }
+            
+            .header {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="score-container">
+                <span class="score-icon">💎</span>
+                <span>Счёт: <span id="score">0</span></span>
+                <span class="best-score">(Рекорд: <span id="best-score">0</span>)</span>
+            </div>
+            <div class="time-container">
+                <span class="time-icon">⏰</span>
+                <span>Время: <span id="time">60</span>с</span>
+            </div>
+        </div>
+        
+        <div id="game-board" class="game-board"></div>
+        
+        <div class="button-container">
+            <button class="btn-new-game" onclick="startNewGame()">Новая игра</button>
+            <button class="btn-hint" onclick="showHint()">Подсказка</button>
+        </div>
+    </div>
+    
+    <div id="game-over-modal" class="game-over-modal hidden">
+        <div class="modal-content">
+            <h2>Игра окончена!</h2>
+            <p>Ваш результат:</p>
+            <div class="final-score" id="final-score">0</div>
+            <p>Новый рекорд! 🎉</p>
+            <button class="btn-new-game" onclick="startNewGame()">Играть снова</button>
+        </div>
+    </div>
+
+    <script>
+        const BOARD_SIZE = 8;
+        const NUM_CRYSTAL_TYPES = 5;
+        const GAME_DURATION = 60;
+        const CRYSTAL_EMOJIS = ['🔴', '🟢', '🔵', '🟡', '🟣'];
+        
+        let board = [];
+        let score = 0;
+        let bestScore = 0;
+        let timeLeft = GAME_DURATION;
+        let selectedCell = null;
+        let isProcessing = false;
+        let gameTimer = null;
+        let comboMultiplier = 1;
+        
+        // Инициализация игры
+        function initGame() {
+            const gameBoard = document.getElementById('game-board');
+            gameBoard.innerHTML = '';
+            
+            // Создание игрового поля
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                board[row] = [];
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    board[row][col] = Math.floor(Math.random() * NUM_CRYSTAL_TYPES);
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.addEventListener('click', () => handleCellClick(row, col));
+                    cell.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        handleCellClick(row, col);
+                    }, { passive: false });
+                    
+                    gameBoard.appendChild(cell);
+                }
+            }
+            
+            // Убираем начальные совпадения
+            removeInitialMatches();
+            renderBoard();
+        }
+        
+        // Удаление начальных совпадений
+        function removeInitialMatches() {
+            let hasMatches = true;
+            while (hasMatches) {
+                const matches = findMatches();
+                if (matches.length === 0) {
+                    hasMatches = false;
+                } else {
+                    removeMatches(matches);
+                    fillBoard();
+                }
+            }
+        }
+        
+        // Отрисовка игрового поля
+        function renderBoard() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                const crystalType = board[row][col];
+                
+                cell.innerHTML = `
+                    <div class="crystal crystal-${crystalType} ${selectedCell && selectedCell.row === row && selectedCell.col === col ? 'selected' : ''}">
+                        ${CRYSTAL_EMOJIS[crystalType]}
+                    </div>
+                `;
+            });
+        }
+        
+        // Обработка клика по ячейке
+        function handleCellClick(row, col) {
+            if (isProcessing || timeLeft <= 0) return;
+            
+            if (selectedCell === null) {
+                selectedCell = { row, col };
+                renderBoard();
+            } else if (selectedCell.row === row && selectedCell.col === col) {
+                selectedCell = null;
+                renderBoard();
+            } else {
+                // Проверка, являются ли ячейки соседними
+                const rowDiff = Math.abs(selectedCell.row - row);
+                const colDiff = Math.abs(selectedCell.col - col);
+                
+                if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+                    swapCrystals(selectedCell.row, selectedCell.col, row, col);
+                    selectedCell = null;
+                } else {
+                    selectedCell = { row, col };
+                    renderBoard();
+                }
+            }
+        }
+        
+        // Обмен кристаллов
+        function swapCrystals(row1, col1, row2, col2) {
+            isProcessing = true;
+            
+            // Обмен кристаллов
+            [board[row1][col1], board[row2][col2]] = [board[row2][col2], board[row1][col1]];
+            renderBoard();
+            
+            // Проверка совпадений
+            setTimeout(() => {
+                const matches = findMatches();
+                if (matches.length > 0) {
+                    processMatches(matches);
+                } else {
+                    // Обмен обратно, если нет совпадений
+                    [board[row1][col1], board[row2][col2]] = [board[row2][col2], board[row1][col1]];
+                    renderBoard();
+                    isProcessing = false;
+                }
+            }, 300);
+        }
+        
+        // Поиск совпадений
+        function findMatches() {
+            const matches = new Set();
+            
+            // Поиск горизонтальных совпадений
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE - 2; col++) {
+                    if (board[row][col] !== -1 && 
+                        board[row][col] === board[row][col + 1] && 
+                        board[row][col] === board[row][col + 2]) {
+                        matches.add(`${row},${col}`);
+                        matches.add(`${row},${col + 1}`);
+                        matches.add(`${row},${col + 2}`);
+                    }
+                }
+            }
+            
+            // Поиск вертикальных совпадений
+            for (let row = 0; row < BOARD_SIZE - 2; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    if (board[row][col] !== -1 && 
+                        board[row][col] === board[row + 1][col] && 
+                        board[row][col] === board[row + 2][col]) {
+                        matches.add(`${row},${col}`);
+                        matches.add(`${row + 1},${col}`);
+                        matches.add(`${row + 2},${col}`);
+                    }
+                }
+            }
+            
+            return Array.from(matches).map(pos => {
+                const [row, col] = pos.split(',').map(Number);
+                return { row, col };
+            });
+        }
+        
+        // Обработка совпадений
+        function processMatches(matches) {
+            const matchCount = matches.length;
+            const points = matchCount * 10 * comboMultiplier;
+            score += points;
+            updateScore();
+            
+            // Анимация совпадений
+            matches.forEach(match => {
+                const cell = document.querySelector(`[data-row="${match.row}"][data-col="${match.col}"]`);
+                if (cell) {
+                    const crystal = cell.querySelector('.crystal');
+                    if (crystal) {
+                        crystal.classList.add('matched');
+                    }
+                }
+            });
+            
+            // Показ комбо
+            if (comboMultiplier > 1) {
+                showComboIndicator(matches[0]);
+            }
+            
+            setTimeout(() => {
+                removeMatches(matches);
+                fillBoard();
+                renderBoard();
+                
+                // Проверка новых совпадений
+                const newMatches = findMatches();
+                if (newMatches.length > 0) {
+                    comboMultiplier++;
+                    processMatches(newMatches);
+                } else {
+                    comboMultiplier = 1;
+                    isProcessing = false;
+                }
+            }, 500);
+        }
+        
+        // Показ индикатора комбо
+        function showComboIndicator(position) {
+            const cell = document.querySelector(`[data-row="${position.row}"][data-col="${position.col}"]`);
+            if (cell) {
+                const indicator = document.createElement('div');
+                indicator.className = 'combo-indicator';
+                indicator.textContent = `Комбо x${comboMultiplier}!`;
+                cell.appendChild(indicator);
+                
+                setTimeout(() => {
+                    indicator.remove();
+                }, 1000);
+            }
+        }
+        
+        // Удаление совпадений
+        function removeMatches(matches) {
+            matches.forEach(match => {
+                board[match.row][match.col] = -1;
+            });
+        }
+        
+        // Заполнение пустых ячеек
+        function fillBoard() {
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                let writeRow = BOARD_SIZE - 1;
+                
+                for (let row = BOARD_SIZE - 1; row >= 0; row--) {
+                    if (board[row][col] !== -1) {
+                        board[writeRow][col] = board[row][col];
+                        if (writeRow !== row) {
+                            board[row][col] = -1;
+                        }
+                        writeRow--;
+                    }
+                }
+                
+                // Заполнение верхних ячеек новыми кристаллами
+                for (let row = writeRow; row >= 0; row--) {
+                    board[row][col] = Math.floor(Math.random() * NUM_CRYSTAL_TYPES);
+                }
+            }
+        }
+        
+        // Обновление счёта
+        function updateScore() {
+            document.getElementById('score').textContent = score;
+            if (score > bestScore) {
+                bestScore = score;
+                document.getElementById('best-score').textContent = bestScore;
+                localStorage.setItem('crystalMatchBestScore', bestScore);
+            }
+        }
+        
+        // Обновление времени
+        function updateTime() {
+            document.getElementById('time').textContent = timeLeft;
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+        
+        // Завершение игры
+        function endGame() {
+            clearInterval(gameTimer);
+            isProcessing = true;
+            
+            const modal = document.getElementById('game-over-modal');
+            const finalScore = document.getElementById('final-score');
+            finalScore.textContent = score;
+            
+            const modalContent = modal.querySelector('.modal-content');
+            const isNewRecord = score >= bestScore && score > 0;
+            
+            // Показ сообщения о рекорде
+            const recordMessage = modalContent.querySelector('p:last-of-type');
+            if (recordMessage) {
+                recordMessage.textContent = isNewRecord ? 'Новый рекорд! 🎉' : `Рекорд: ${bestScore}`;
+            }
+            
+            modal.classList.remove('hidden');
+        }
+        
+        // Новая игра
+        function startNewGame() {
+            document.getElementById('game-over-modal').classList.add('hidden');
+            
+            score = 0;
+            timeLeft = GAME_DURATION;
+            selectedCell = null;
+            isProcessing = false;
+            comboMultiplier = 1;
+            
+            updateScore();
+            updateTime();
+            
+            clearInterval(gameTimer);
+            gameTimer = setInterval(() => {
+                timeLeft--;
+                updateTime();
+            }, 1000);
+            
+            initGame();
+        }
+        
+        // Показ подсказки
+        function showHint() {
+            if (isProcessing || timeLeft <= 0) return;
+            
+            // Поиск возможного хода
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    // Проверка горизонтального обмена
+                    if (col < BOARD_SIZE - 1) {
+                        [board[row][col], board[row][col + 1]] = [board[row][col + 1], board[row][col]];
+                        if (findMatches().length > 0) {
+                            [board[row][col], board[row][col + 1]] = [board[row][col + 1], board[row][col]];
+                            highlightHint(row, col, row, col + 1);
+                            return;
+                        }
+                        [board[row][col], board[row][col + 1]] = [board[row][col + 1], board[row][col]];
+                    }
+                    
+                    // Проверка вертикального обмена
+                    if (row < BOARD_SIZE - 1) {
+                        [board[row][col], board[row + 1][col]] = [board[row + 1][col], board[row][col]];
+                        if (findMatches().length > 0) {
+                            [board[row][col], board[row + 1][col]] = [board[row + 1][col], board[row][col]];
+                            highlightHint(row, col, row + 1, col);
+                            return;
+                        }
+                        [board[row][col], board[row + 1][col]] = [board[row + 1][col], board[row][col]];
+                    }
+                }
+            }
+            
+            // Если подсказок нет, перемешиваем поле
+            shuffleBoard();
+        }
+        
+        // Подсветка подсказки
+        function highlightHint(row1, col1, row2, col2) {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                
+                if ((row === row1 && col === col1) || (row === row2 && col === col2)) {
+                    cell.style.boxShadow = '0 0 15px 5px rgba(255, 255, 0, 0.8)';
+                    setTimeout(() => {
+                        cell.style.boxShadow = 'none';
+                    }, 2000);
+                }
+            });
+        }
+        
+        // Перемешивание поля
+        function shuffleBoard() {
+            const crystals = [];
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    crystals.push(board[row][col]);
+                }
+            }
+            
+            // Перемешивание
+            for (let i = crystals.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [crystals[i], crystals[j]] = [crystals[j], crystals[i]];
+            }
+            
+            // Заполнение поля
+            let index = 0;
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    board[row][col] = crystals[index++];
+                }
+            }
+            
+            // Убираем совпадения
+            removeInitialMatches();
+            renderBoard();
+        }
+        
+        // Загрузка лучшего результата
+        function loadBestScore() {
+            const savedBest = localStorage.getItem('crystalMatchBestScore');
+            if (savedBest) {
+                bestScore = parseInt(savedBest);
+                document.getElementById('best-score').textContent = bestScore;
+            }
+        }
+        
+        // Запуск игры при загрузке
+        window.addEventListener('load', () => {
+            loadBestScore();
+            startNewGame();
+        });
+        
+        // Обработка изменения размера окна
+        window.addEventListener('resize', () => {
+            const gameBoard = document.getElementById('game-board');
+            const maxWidth = Math.min(window.innerWidth - 40, 460);
+            gameBoard.style.width = maxWidth + 'px';
+            gameBoard.style.height = maxWidth + 'px';
+        });
+        
+        // Предотвращение двойного нажатия на мобильных
+        document.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+        });
+    </script>
+</body>
+</html>
